@@ -2,6 +2,7 @@ const createRetry = require('../retry')
 const flatten = require('../utils/flatten')
 const waitFor = require('../utils/waitFor')
 const createConsumer = require('../consumer')
+const resolveConsumerOffsets = require('./resolveOffsets')
 const InstrumentationEventEmitter = require('../instrumentation/emitter')
 const { events, wrap: wrapEvent, unwrap: unwrapEvent } = require('./instrumentationEvents')
 const { LEVELS } = require('../loggers')
@@ -355,7 +356,7 @@ module.exports = ({
    * @param {string} topic
    * @return {Promise}
    */
-  const fetchOffsets = async ({ groupId, topic }) => {
+  const fetchOffsets = async ({ groupId, topic, resolveOffsets = false }) => {
     if (!groupId) {
       throw new KafkaJSNonRetriableError(`Invalid groupId ${groupId}`)
     }
@@ -364,16 +365,22 @@ module.exports = ({
       throw new KafkaJSNonRetriableError(`Invalid topic ${topic}`)
     }
 
-    const partitions = await findTopicPartitions(cluster, topic)
+    const topicPartitions = await findTopicPartitions(cluster, topic)
     const coordinator = await cluster.findGroupCoordinator({ groupId })
-    const partitionsToFetch = partitions.map(partition => ({ partition }))
+    const partitionsToFetch = topicPartitions.map(partition => ({ partition }))
 
-    const { responses } = await coordinator.offsetFetch({
+    let { responses: consumerOffsets } = await coordinator.offsetFetch({
       groupId,
       topics: [{ topic, partitions: partitionsToFetch }],
     })
 
-    return responses
+    if (resolveOffsets) {
+      console.log('HERRO', JSON.stringify(consumerOffsets, null, 2))
+      consumerOffsets = await resolveConsumerOffsets({ cluster, groupId, consumerOffsets })
+      console.log('HERRO2', JSON.stringify(consumerOffsets, null, 2))
+    }
+
+    return consumerOffsets
       .filter(response => response.topic === topic)
       .map(({ partitions }) =>
         partitions.map(({ partition, offset, metadata }) => ({
