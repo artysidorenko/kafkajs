@@ -774,7 +774,7 @@ module.exports = class Broker {
     return await this[PRIVATE.SEND_REQUEST](deleteAcls({ filters }))
   }
 
-  /***
+  /**
    * Send request to delete records
    * @public
    * @param {Array<Object>} topics
@@ -861,7 +861,7 @@ module.exports = class Broker {
     )
   }
 
-  /**
+  /***
    * @private
    */
   [PRIVATE.SHOULD_REAUTHENTICATE]() {
