@@ -157,41 +157,6 @@ describe('Broker > deleteRecords', () => {
     expect(messagesPartition1.length).toBe(7) // original number of messages
   })
 
-  test('skips with a warning any partition that does not exist/does not have a lead broker', async () => {
-    // try to add to the delete request a partition that doesn't exist
-    recordsToDelete = [
-      { partition: 0, offset: '7' },
-      { partition: 2, offset: '5' },
-    ]
-    await admin.deleteTopicRecords({ topic: topicName, partitions: recordsToDelete })
-
-    expect(logger.warn).toHaveBeenCalledTimes(1)
-    expect(logger.warn).toHaveBeenCalledWith('Could not find broker/leader for the partition', {
-      topic: topicName,
-      partition: 2,
-    })
-    // ignore the incorrect partition, and delete the correct partition's selected messages
-    expect(
-      await cluster.fetchTopicsOffset([
-        {
-          topic: topicName,
-          partitions: [{ partition: 0 }],
-          fromBeginning: true,
-        },
-      ])
-    ).toEqual([
-      {
-        topic: topicName,
-        partitions: [
-          {
-            partition: 0,
-            offset: '7',
-          },
-        ],
-      },
-    ])
-  })
-
   test('deletes all records when provided the -1 offset', async () => {
     recordsToDelete = [{ partition: 0, offset: '-1' }]
 
@@ -234,6 +199,7 @@ describe('Broker > deleteRecords', () => {
     expect(brokerSpy).toHaveBeenCalledTimes(3)
     expect(brokerSpy.mock.calls[1]).not.toEqual(brokerSpy.mock.calls[0])
     expect(brokerSpy.mock.calls[2]).toEqual(brokerSpy.mock.calls[1])
+    brokerSpy.mockRestore()
   })
 
   test('in case offset is out of range, throws before processing any partitions', async () => {
@@ -248,5 +214,86 @@ describe('Broker > deleteRecords', () => {
       )
     )
     expect(brokerSpy).not.toHaveBeenCalled()
+    brokerSpy.mockRestore()
+  })
+
+  test('in case offset is below low watermark, log a warning', async () => {
+    // delete #1 to set the low watermark to 5
+    recordsToDelete = [{ partition: 1, offset: '5' }]
+    await admin.deleteTopicRecords({ topic: topicName, partitions: recordsToDelete })
+    // delete #2
+    recordsToDelete = [
+      { partition: 0, offset: '7' }, // work as normal
+      { partition: 1, offset: '3' }, // logs a warning + no effect on the partition
+    ]
+    await admin.deleteTopicRecords({ topic: topicName, partitions: recordsToDelete })
+
+    expect(logger.warn).toHaveBeenCalledTimes(1)
+    expect(logger.warn).toHaveBeenCalledWith(
+      'The requested offset is before the earliest offset maintained on the partition - no records will be deleted from this partition',
+      {
+        topic: topicName,
+        partition: 1,
+        offset: '3',
+      }
+    )
+    expect(
+      await cluster.fetchTopicsOffset([
+        {
+          topic: topicName,
+          partitions: [{ partition: 0 }, { partition: 1 }],
+          fromBeginning: true,
+        },
+      ])
+    ).toEqual([
+      {
+        topic: topicName,
+        partitions: expect.arrayContaining([
+          {
+            partition: 0,
+            offset: '7',
+          },
+          {
+            partition: 1,
+            offset: '5',
+          },
+        ]),
+      },
+    ])
+  })
+
+  test('in case partition does not exist/has no lead broker, skip with a warning', async () => {
+    // try to add to the delete request a partition that doesn't exist
+    recordsToDelete = [
+      { partition: 0, offset: '7' },
+      { partition: 2, offset: '5' },
+    ]
+    await admin.deleteTopicRecords({ topic: topicName, partitions: recordsToDelete })
+
+    expect(logger.warn).toHaveBeenCalledTimes(1)
+    expect(logger.warn).toHaveBeenCalledWith('Could not find broker/leader for the partition', {
+      topic: topicName,
+      partition: 2,
+    })
+    // ignore the incorrect partition, and delete the correct partition's selected messages
+    expect(
+      await cluster.fetchTopicsOffset([
+        {
+          topic: topicName,
+          partitions: [{ partition: 0 }],
+          fromBeginning: true,
+        },
+      ])
+    ).toEqual([
+      {
+        topic: topicName,
+        partitions: [
+          {
+            partition: 0,
+            offset: '7',
+          },
+        ],
+      },
+    ])
   })
 })
