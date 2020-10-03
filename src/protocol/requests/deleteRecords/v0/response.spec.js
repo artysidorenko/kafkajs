@@ -11,7 +11,7 @@ describe('Protocol > Requests > DeleteRecords > v0', () => {
           topic: 'test-topic-5da683fa3b1898223498-97119-d06829e3-35d2-4b97-b4b4-7c03d4ad7cc8',
           partitions: [
             {
-              partitionIndex: 0,
+              partition: 0,
               lowWatermark: 7n,
               errorCode: 0,
             },

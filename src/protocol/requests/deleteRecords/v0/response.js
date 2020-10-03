@@ -6,8 +6,8 @@ const { failure, createErrorFromCode } = require('../../../error')
  *  throttle_time_ms => INT32
  *  topics => name [partitions]
  *    name => STRING
- *    partitions => partition_index low_watermark error_code
- *      partition_index => INT32
+ *    partitions => partition low_watermark error_code
+ *      partition => INT32
  *      low_watermark => INT64
  *      error_code => INT16
  */
@@ -22,7 +22,7 @@ const decode = async rawData => {
       .readArray(decoder => ({
         topic: decoder.readString(),
         partitions: decoder.readArray(decoder => ({
-          partitionIndex: decoder.readInt32(),
+          partition: decoder.readInt32(),
           lowWatermark: decoder.readInt64(),
           errorCode: decoder.readInt16(),
         })),
