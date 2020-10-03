@@ -19,7 +19,7 @@ const { assign } = Object
 const logger = assign(newLogger(), { namespace: () => logger })
 jest.spyOn(logger, 'warn')
 
-describe('Broker > deleteRecords', () => {
+describe('Broker > deleteTopicRecords', () => {
   let topicName, cluster, admin, producer, recordsToDelete, consumer, groupId
 
   beforeEach(async () => {
