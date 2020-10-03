@@ -69,14 +69,8 @@ describe('Broker > deleteRecords', () => {
       {
         topic: topicName,
         partitions: expect.arrayContaining([
-          {
-            partition: 0,
-            offset: '13',
-          },
-          {
-            partition: 1,
-            offset: '7',
-          },
+          { partition: 0, offset: '13' },
+          { partition: 1, offset: '7' },
         ]),
       },
     ])
@@ -125,14 +119,8 @@ describe('Broker > deleteRecords', () => {
       {
         topic: topicName,
         partitions: expect.arrayContaining([
-          {
-            partition: 0,
-            offset: '7',
-          },
-          {
-            partition: 1,
-            offset: '0',
-          },
+          { partition: 0, offset: '7' },
+          { partition: 1, offset: '0' },
         ]),
       },
     ])
@@ -173,12 +161,7 @@ describe('Broker > deleteRecords', () => {
     ).toEqual([
       {
         topic: topicName,
-        partitions: [
-          {
-            partition: 0,
-            offset: '13',
-          },
-        ],
+        partitions: [{ partition: 0, offset: '13' }],
       },
     ])
   })
@@ -229,13 +212,11 @@ describe('Broker > deleteRecords', () => {
     await admin.deleteTopicRecords({ topic: topicName, partitions: recordsToDelete })
 
     expect(logger.warn).toHaveBeenCalledTimes(1)
-    expect(logger.warn).toHaveBeenCalledWith(
+    expect(
+      logger.warn
+    ).toHaveBeenCalledWith(
       'The requested offset is before the earliest offset maintained on the partition - no records will be deleted from this partition',
-      {
-        topic: topicName,
-        partition: 1,
-        offset: '3',
-      }
+      { topic: topicName, partition: 1, offset: '3' }
     )
     expect(
       await cluster.fetchTopicsOffset([
@@ -249,14 +230,8 @@ describe('Broker > deleteRecords', () => {
       {
         topic: topicName,
         partitions: expect.arrayContaining([
-          {
-            partition: 0,
-            offset: '7',
-          },
-          {
-            partition: 1,
-            offset: '5',
-          },
+          { partition: 0, offset: '7' },
+          { partition: 1, offset: '5' },
         ]),
       },
     ])
@@ -287,12 +262,7 @@ describe('Broker > deleteRecords', () => {
     ).toEqual([
       {
         topic: topicName,
-        partitions: [
-          {
-            partition: 0,
-            offset: '7',
-          },
-        ],
+        partitions: [{ partition: 0, offset: '7' }],
       },
     ])
   })
